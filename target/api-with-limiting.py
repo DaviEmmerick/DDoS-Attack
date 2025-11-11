@@ -89,7 +89,6 @@ def start_attack_route():
     print(f"[FLASK] Recebida ordem para iniciar a simulação em '{target_key}'.")
     
     def run_in_thread():
-        """Função wrapper para rodar o loop asyncio em uma thread separada."""
         try:
             asyncio.run(run_attack_async(target_url, total_requests, concurrency_limit, target_key))
         except Exception as e:
@@ -108,3 +107,5 @@ def get_status():
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
+
+# run: uvicorn api-with-limiting:app --port 8002

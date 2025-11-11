@@ -26,7 +26,7 @@
             <input type="number" id="concurrency" value="500" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-gray-700 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold text-red-400 mb-3">Alvo 1: Desprotegido</h2>
                 <p class="text-gray-400 text-sm mb-4">Porta: 8001<br>Proteção: Nenhuma</p>
@@ -50,6 +50,8 @@
     </div>
 
     <script>
+        const FLASK_SERVER_URL = 'http://127.0.0.1:5000';
+
         async function startAttack(target) {
             const buttonId = `#start-${target}`;
             const statusId = `#status-${target}`;
@@ -63,7 +65,7 @@
             const concurrency = document.getElementById('concurrency').value;
 
             try {
-                const response = await fetch('/start-attack', {
+                const response = await fetch(`${FLASK_SERVER_URL}/start-attack`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -95,7 +97,27 @@
         let pollInterval;
         async function fetchStatus() {
             try {
-                const response = await fetch('/status');
+                const response = await fetch(`${FLASK_SERVER_URL}/status`);
+
+                const contentType = response.headers.get("content-type");
+                if (!response.ok || !contentType || !contentType.includes("application/json")) {
+                    console.error('Erro ao buscar status: Resposta não foi JSON. O servidor Flask (atacante) está rodando com a rota /status?');
+                    
+                    document.getElementById('status-unprotected').textContent = 'Status: Erro (servidor?)';
+                    document.getElementById('status-protected').textContent = 'Status: Erro (servidor?)';
+                    
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    
+                    document.getElementById('start-unprotected').disabled = false;
+                    document.getElementById('start-unprotected').textContent = 'Iniciar Simulação';
+                    document.getElementById('start-protected').disabled = false;
+                    document.getElementById('start-protected').textContent = 'Iniciar Simulação';
+                    return; 
+                }
+                
                 const status = await response.json();
 
                 const uStatus = status.unprotected || 'Pronto';
