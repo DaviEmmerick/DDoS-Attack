@@ -8,7 +8,7 @@ app = FastAPI()
 @app.get("/api/data")
 async def get_data():
     try:
-        await asyncio.sleep(0.01) 
+        time.sleep(0.01) 
     except Exception as e:
         print(f"Erro no sleep: {e}")
         
