@@ -3,66 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Carga</title>
+    <title>Simulador de DoS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: grid;
-            place-items: center;
-            min-height: 90vh;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-        }
-        div.card {
-            background: #ffffff;
-            padding: 2rem 3rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        h2 {
-            margin-top: 0;
-            color: #0056b3;
-        }
-        p {
-            margin-bottom: 1.5rem;
-        }
-        code {
-            background-color: #eee;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            font-family: "Courier New", Courier, monospace;
-        }
-        button {
-            font-size: 16px;
-            font-weight: 600;
-            padding: 12px 24px;
-            color: #fff;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:active {
-            transform: scale(0.98);
-        }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body>
-    <div class="card">
-        <h2>Simulador de Carga (DoS)</h2>
-        <p>Irá disparar 10.000 requisições para <code>http://127.0.0.1:8001/api/data</code></p>
-        
-        <form action="/start-attack" method="POST">
-            <button type="submit">
-                Iniciar Simulação
-            </button>
-        </form>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
+        <h1 class="text-3xl font-bold text-center text-blue-400 mb-6">Painel de Simulação de Carga</h1>
+        <p class="text-gray-400 text-center mb-8">
+            Use este painel para iniciar simulações de alta carga contra dois endpoints:
+            um sem proteção e outro com Rate Limiting.
+        </p>
+
+        <div class="mb-6">
+            <label for="requests" class="block text-sm font-medium text-gray-300 mb-2">Total de Requisições:</label>
+            <input type="number" id="requests" value="10000" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="mb-8">
+            <label for="concurrency" class="block text-sm font-medium text-gray-300 mb-2">Concorrência (Requisições simultâneas):</label>
+            <input type="number" id="concurrency" value="500" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">>
+            <div class="bg-gray-700 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold text-red-400 mb-3">Alvo 1: Desprotegido</h2>
+                <p class="text-gray-400 text-sm mb-4">Porta: 8001<br>Proteção: Nenhuma</p>
+                <button id="start-unprotected" onclick="startAttack('unprotected')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Iniciar Simulação
+                </button>
+                <div id="status-unprotected" class="mt-4 text-sm text-gray-300">Status: Pronto</div>
+            </div>
+
+            <div class="bg-gray-700 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold text-green-400 mb-3">Alvo 2: Protegido</h2>
+                <p class="text-gray-400 text-sm mb-4">Porta: 8002<br>Proteção: Rate Limit (10/min)</p>
+                <button id="start-protected" onclick="startAttack('protected')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Iniciar Simulação
+                </button>
+                <div id="status-protected" class="mt-4 text-sm text-gray-300">Status: Pronto</div>
+            </div>
+        </div>
+
+        <div id="error-message" class="mt-6 text-red-400 text-center"></div>
     </div>
+
+    <script>
+        async function startAttack(target) {
+            const buttonId = `#start-${target}`;
+            const statusId = `#status-${target}`;
+            
+            document.querySelector(buttonId).disabled = true;
+            document.querySelector(buttonId).textContent = 'Rodando...';
+            document.querySelector(statusId).textContent = 'Status: Iniciando...';
+            document.getElementById('error-message').textContent = '';
+
+            const requests = document.getElementById('requests').value;
+            const concurrency = document.getElementById('concurrency').value;
+
+            try {
+                const response = await fetch('/start-attack', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        target: target,
+                        requests: parseInt(requests, 10),
+                        concurrency: parseInt(concurrency, 10)
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                const result = await response.text();
+                console.log(result);
+                pollStatus();
+            } catch (error) {
+                console.error('Erro ao iniciar simulação:', error);
+                document.getElementById('error-message').textContent = `Erro: ${error.message}`;
+                document.querySelector(buttonId).disabled = false;
+                document.querySelector(buttonId).textContent = 'Iniciar Simulação';
+                document.querySelector(statusId).textContent = 'Status: Erro';
+            }
+        }
+
+        let pollInterval;
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+
+                const uStatus = status.unprotected || 'Pronto';
+                const pStatus = status.protected || 'Pronto';
+
+                document.getElementById('status-unprotected').textContent = `Status: ${uStatus}`;
+                document.getElementById('status-protected').textContent = `Status: ${pStatus}`;
+
+                const uButton = document.getElementById('start-unprotected');
+                const pButton = document.getElementById('start-protected');
+
+                if (uStatus.startsWith('Rodando')) {
+                    uButton.disabled = true;
+                    uButton.textContent = 'Rodando...';
+                } else if (!uButton.disabled) {
+                    uButton.disabled = false;
+                    uButton.textContent = 'Iniciar Simulação';
+                }
+
+                if (pStatus.startsWith('Rodando')) {
+                    pButton.disabled = true;
+                    pButton.textContent = 'Rodando...';
+                } else if (!pButton.disabled) {
+                    pButton.disabled = false;
+                    pButton.textContent = 'Iniciar Simulação';
+                }
+
+                if (!uStatus.startsWith('Rodando') && !pStatus.startsWith('Rodando') && !uStatus.startsWith('Iniciando') && !pStatus.startsWith('Iniciando')) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    
+                    uButton.disabled = false;
+                    uButton.textContent = 'Iniciar Simulação';
+                    pButton.disabled = false;
+                    pButton.textContent = 'Iniciar Simulação';
+                }
+
+            } catch (error) {
+                console.error('Erro ao buscar status:', error);
+            }
+        }
+
+        function pollStatus() {
+            if (!pollInterval) {
+                pollInterval = setInterval(fetchStatus, 1000);
+            }
+        }
+
+        pollStatus();
+    </script>
 </body>
 </html>
