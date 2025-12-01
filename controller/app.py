@@ -25,6 +25,8 @@ async def send_request(session, url, stats, semaphore):
                 stats['success'] += 1
             elif response.status_code == 429: 
                 stats['rate_limited'] += 1
+            elif response.status_code == 403:
+                stats['blocked'] += 1
             else:
                 stats['failed'] += 1
         except httpx.ReadTimeout:
@@ -35,6 +37,9 @@ async def send_request(session, url, stats, semaphore):
 async def run_attack_async(url, num_requests, concurrency, target_key):
     print(f"[ATAQUE EM {target_key.upper()}] Iniciando simulação em {url}...")
     simulation_status[target_key] = 'Rodando: 0%'
+
+    stats = {'success': 0, 'rate_limited': 0, 'failed': 0, 'errors': 0, 'blocked': 0}
+    start_time = time.time()
     
     stats = {'success': 0, 'rate_limited': 0, 'failed': 0, 'errors': 0}
     start_time = time.time()
@@ -66,7 +71,13 @@ async def run_attack_async(url, num_requests, concurrency, target_key):
     print(f"Tempo total: {total_time:.2f} segundos.")
     print(f"Resultados: {stats}")
     
-    simulation_status[target_key] = f'Concluído! (Sucesso: {stats["success"]}, Rate Limit: {stats["rate_limited"]}, Erros: {stats["errors"]})'
+    simulation_status[target_key] = (
+        f'Concluído! ('
+        f'Sucesso: {stats["success"]}, '
+        f'BLOQUEADOS (Firewall): {stats["blocked"]}, '
+        f'Rate Limit: {stats["rate_limited"]}, '
+        f'Erros: {stats["errors"]})'
+    )
 
 @app.route('/')
 def index():
