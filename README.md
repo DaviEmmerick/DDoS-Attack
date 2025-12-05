@@ -64,13 +64,18 @@ pip install -r requirements.txt
 
 4️⃣ Execução
 
-No Terminal 1 (Inicie a API Alvo): Assumindo que seu arquivo FastAPI
+No Terminal 1 (Inicie a API Alvo): 
 
 ```
 uvicorn fastapi_target:app --port 8001
 ```
+No Terminal 2 (Inicie a API Alvo): 
 
-No Terminal 2 (Inicie o Controlador): Assumindo que seu arquivo Flask se chama flask_controller.py
+```
+uvicorn fastapi_target:app --port 8002
+```
+
+No Terminal 3 (Inicie o Controlador): Assumindo que seu arquivo Flask se chama flask_controller.py
 
 ```
 flask --app flask_controller run --port 5000
@@ -78,8 +83,6 @@ flask --app flask_controller run --port 5000
 
 # ✨ Implementações Futuras
 
--> Implementar Rate Limiting (limitação de taxa) no FastAPI como uma contramedida para mitigar o ataque.
-
 -> Adicionar um dashboard simples ao Flask (talvez com WebSockets) para mostrar o status do ataque em tempo real.
 
--> Dockerizar as aplicações (Flask e FastAPI) usando docker-compose para facilitar a execução.
+-> Dockerizar as aplicações para facilitar a execução e o isolamento.
